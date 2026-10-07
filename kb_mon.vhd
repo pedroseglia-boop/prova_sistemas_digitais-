@@ -10,7 +10,7 @@ entity kb_monitor is
    );
 end kb_monitor;
 
-architecture arch of kb_monitor is
+architecture arch of kb_mon is
    constant SP: std_logic_vector(7 downto 0) := "00100000"; -- Espaço em ASCII (x"20")
    
    type statetype is (idle, send_type, send_state, send1, send0, sendb);
