@@ -8,7 +8,6 @@ entity bcd2bin is
       bcd2, bcd1, bcd0 : in std_logic_vector(3 downto 0);
       ready: out std_logic;
 	done_tick :out std_logic;
-      r: out std_logic;
 	bin : std_logic_vector(15 downto 0)
    );
 end bcd2bin;
