@@ -28,8 +28,8 @@ architecture arch of mult_8b_top is
 
    --multiplicador
    signal m_start : std_logic;  
-   signal x_in : std_logic_vector(7  downto 0);   
-   signal y_in : std_logic_vector(7  downto 0);  
+   -- x_in é um registrador e não um sinal     
+   -- y_in é um registrador e não um sinal  
    signal m_idle : std_logic;  
    signal m_done_tick : std_logic;  
    signal z_out : std_logic_vector(15  downto 0);  
@@ -64,12 +64,11 @@ architecture arch of mult_8b_top is
    --flags ainda sem função definida
    signal erro : std_logic; --valor invalido inserido
    signal x_done_tick : std_logic; --indica que todos os digitos de x foram recebidos   
-   signal conv_ctrl : std_logic_vector (1 downto 0); -- controle da conversão , indica se estou convertendo x => 01 , y=> 10 ou nenhum deles 00
 
 
    type state_type is (idle, tecla_igual_x, tecla1_x, tecla2_x, tecla3_x, armazena_x,
     tecla_enter_x, tecla_igual_y, tecla1_y, tecla2_y, armazena_y, tecla_enter_y,
-    start_bcd2bin) ;
+    start_bcd2bin, wait_bcd2bin) ;
    signal state_reg, state_next : state_type;
    signal x_bcd2_reg, x_bcd1_reg, x_bcd0_reg :unsigned(3 downto 0);
    signal x_bcd2_next, x_bcd1_next, x_bcd0_next :unsigned(3 downto 0);
@@ -79,10 +78,16 @@ architecture arch of mult_8b_top is
    signal y_sign_reg, y_sign_next : std_logic;
    signal valid_reg, valid_next :std_logic;
    signal counter_reg, counter_next : unsigned(2 downto 0); 
+   --guarda o valor de entrada temporariamente para converção
    signal in_bcd2_reg, in_bcd1_reg, in_bcd0_reg :unsigned(3 downto 0);
    signal in_bcd2_next, in_bcd1_next, in_bcd0_next :unsigned(3 downto 0);
-   signal in_sign_reg, in_sign_next : std_logic;
+   signal in_sign_reg, in_sign_next : std_logic; 
 
+   --guarda operandos da multiplicação temporariamente, enquanto aguarda a ordem de multiplicar
+   signal x_in_reg, x_in_next : std_logic_vector(7 downto 0);
+   signal y_in_reg, y_in_next :  std_logic_vector(7 downto 0);
+
+   signal conv_ctrl_reg, conv_ctrl_next  : std_logic_vector (1 downto 0); -- controle da conversão , indica se estou convertendo x => 01 , y=> 10 ou nenhum deles 00 
 
 
 
@@ -129,8 +134,8 @@ begin
          clk       => clk,  --in
          reset     => reset, --in 
          m_start => m_start , --in -> signal    ,sinal de entrada que inicia operação 1 bit
-         x_in => x_in ,    --in -> signal
-         y_in => y_in ,    --in -> signal
+         x_in => x_in_reg ,    --in -> signal
+         y_in => y_in_reg ,    --in -> signal
          m_idle => m_idle ,  --saida -> signal    ,flag indica sistema ocioso
          m_done_tick => m_done_tick,  --saida -> signal     ,flag indica que operação terminou
          z_out => z_out  --saida -> signal
@@ -182,6 +187,7 @@ begin
          in_bcd2_reg <= (others=>'0');
          in_bcd1_reg <= (others=>'0');
          in_bcd0_reg <= (others=>'0');
+         conv_ctrl_reg <= (others=>'0');
    
 
          
@@ -202,13 +208,14 @@ begin
          in_bcd1_reg <= in_bcd1_next;
          in_bcd0_reg <= in_bcd0_next;         
          in_sign_reg <= in_sign_next; 
+         conv_ctrl_reg <= conv_ctrl_next;
       end if;
    end process;
 
    --logica proximo estado
    process(state_reg, make_code, extend, press, k_done_tick, 
             wr_uart, w_data, 
-            m_start, x_in, y_in, m_idle, m_done_tick, z_out, 
+            m_start, m_idle, m_done_tick, z_out,  --x_in e y_in são registradores, não entram na lista de sensibilidade
             c_start_bcd2bin, bcd2_in, bcd1_in, bcd0_in, ready_bcd2bin, c_done_tick_bcd2bin, bin_out, 
             c_start_bin2bcd, bin_in, ready_bin2bcd, c_done_tick_bin2bcd, bcd2_out, bcd1_out, bcd0_out, 
             conv_ctrl,
@@ -225,9 +232,13 @@ begin
       y_sign_next <= y_sign_reg;
       valid_next <= valid_reg;
       counter_next <= counter_reg;
+      in_bcd2_next <= in_bcd2_reg;
+      in_bcd1_next <= in_bcd1_reg;
+      in_bcd0_next <= in_bcd0_reg;         
+      in_sign_next <= in_sign_reg; 
+      conv_ctrl_next <= conv_ctrl_reg;
       erro <= '0';   
       x_done_tick <= '0';
-      conv_ctrl <= "00";
 
       case state_reg is
          when idle =>
@@ -374,22 +385,35 @@ begin
                end if;
             end if; 
  
-         when start_bcd2bin =>
-            if conv_ctr ="01" then
+         when start_bcd2bin => -- pergunta : conversor ocioso?  se sim começa converção
+            state_next <= wait_bcd2bin;
+            if conv_ctr ="01" and ready_bcd2bin = '1' then
             bcd2_in <= x_bcd2_reg;
             bcd1_in <= x_bcd1_reg;
             bcd0_in <= x_bcd0_reg;
             c_start_bcd2bin <= '1';
             
-            elsif conv_ctr ="10" then
+            elsif conv_ctr ="10" and ready_bcd2bin = '1' then
             bcd2_in <= y_bcd2_reg;
             bcd1_in <= y_bcd1_reg;
             bcd0_in <= y_bcd0_reg;
             c_start_bcd2bin <= '1';
-            
             end if;
                
-         when start_bcd2bin => 
+         when wait_bcd2bin => --
+            if conv_ctrl="01" and c_done_tick_bcd2bin = '1' then
+               if x_sign_reg = '1' then
+                  x_in  <= std_logic_vector( unsigned(not bin_out) + 1) ;
+               else
+                  x_in <= bin_out;
+               end if; 
+            elsif conv_ctrl="01" then
+               if y_sign_reg = '1' then
+                  y_in  <= std_logic_vector( unsigned(not bin_out) + 1) ;
+               else
+                  y_in <= bin_out;
+               end if;             
+            end if;
 
       end case;
 
