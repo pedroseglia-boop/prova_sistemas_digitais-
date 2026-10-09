@@ -13,37 +13,63 @@ entity mult_8b_top is
 end mult_8b_top;
 
 architecture arch of mult_8b_top is 
---sinais   
+--sinais circuitos instanciados
+
+   --keybord  
    signal make_code: std_logic_vector(7 downto 0); --teclado
    signal extend, press: std_logic; --teclado
    signal k_done_tick: std_logic; --teclado
 
+   --uart
    constant DVSR: std_logic_vector(10 downto 0) := std_logic_vector(to_unsigned(324, 11)); --uart
    signal wr_uart: std_logic; --uart
    signal w_data: std_logic_vector(7 downto 0); --uart
 
-   signal m_start : std_logic; --multiplicador 
-   signal x_in : std_logic_vector(7  downto 0);  --multiplicador 
-   signal y_in : std_logic_vector(7  downto 0);  --multiplicador 
-   signal m_idle : std_logic;  --multiplicador 
-   signal m_done_tick : std_logic;  --multiplicador 
-   signal z_out : std_logic_vector(15  downto 0);  --multiplicador 
 
-   signal c_start :std_logic;
-   signal bcd2 : std_logic_vector(3 downto 0);
-   signal bcd1 : std_logic_vector(3 downto 0);
-   signal bcd0 : std_logic_vector(3 downto 0);
-   signal ready:std_logic; 
-   signal c_done_tick : std_logic; 
-   signal bin : std_logic_vector(7 downto 0) ;
+   --multiplicador
+   signal m_start : std_logic;  
+   signal x_in : std_logic_vector(7  downto 0);   
+   signal y_in : std_logic_vector(7  downto 0);  
+   signal m_idle : std_logic;  
+   signal m_done_tick : std_logic;  
+   signal z_out : std_logic_vector(15  downto 0);  
+
+   --bcd2bin
+   signal c_start_bcd2bin :std_logic;
+   signal bcd2_in : std_logic_vector(3 downto 0);
+   signal bcd1_in : std_logic_vector(3 downto 0);
+   signal bcd0_in : std_logic_vector(3 downto 0);
+   signal ready_bcd2bin:std_logic; 
+   signal c_done_tick_bcd2bin : std_logic; 
+   signal bin_out : std_logic_vector(7 downto 0) ;
+
+   --bin2bcd
+   signal c_start_bin2bcd :std_logic;
+   signal bin_in : std_logic_vector(7 downto 0) ;
+   signal ready_bin2bcd : std_logic; 
+   signal c_done_tick_bin2bcd : std_logic;
+   signal bcd2_out : std_logic_vector(3 downto 0);
+   signal bcd1_out : std_logic_vector(3 downto 0);
+   signal bcd0_out : std_logic_vector(3 downto 0);
 
 
-   signal erro : std_logic;
-   signal x_done_tick : std_logic; --indica que todos os digitos de x foram recebidos
-   signal digito_numerico : std_logic; --flag circuito combinacional, make_code2bcd
-   signal bcd : std_logic_vector(3 downto 0); -- armazena conversão make_code2bcd, circuito combinacional
+--sinais para os circuitos combinacionais
 
-   type state_type is (idle, tecla_igual_x, tecla1_x, tecla2_x, tecla3_x, armazena_x, tecla_enter_x, tecla_igual_y, tecla1_y, tecla2_y, armazena_y, tecla_enter_y) ;
+   --circuito combinacional, make_code2bcd
+   signal digito_numerico : std_logic; --flag 
+   signal bcd : std_logic_vector(3 downto 0); -- armazena conversão 
+
+   
+--sinais maquina de estados
+   --flags ainda sem função definida
+   signal erro : std_logic; --valor invalido inserido
+   signal x_done_tick : std_logic; --indica que todos os digitos de x foram recebidos   
+   signal conv_ctrl : std_logic_vector (1 downto 0); -- controle da conversão , indica se estou convertendo x => 01 , y=> 10 ou nenhum deles 00
+
+
+   type state_type is (idle, tecla_igual_x, tecla1_x, tecla2_x, tecla3_x, armazena_x,
+    tecla_enter_x, tecla_igual_y, tecla1_y, tecla2_y, armazena_y, tecla_enter_y,
+    start_bcd2bin) ;
    signal state_reg, state_next : state_type;
    signal x_bcd2_reg, x_bcd1_reg, x_bcd0_reg :unsigned(3 downto 0);
    signal x_bcd2_next, x_bcd1_next, x_bcd0_next :unsigned(3 downto 0);
@@ -114,15 +140,29 @@ begin
       port map (
          clk       => clk, 
          reset     => reset, 
-         start => c_start , --in -> signal
-         bcd2 => bcd2 ,  --in -> signal
-         bcd1 => bcd1 ,  --in -> signal
-         bcd0 => bcd0, --in -> signal
-         ready => ready, --saida -> signal      ,flag indica conversor ocioso
-	      done_tick => c_done_tick,  --saida -> signal       ,flag indica conversão terminou
-         bin => bin --saida -> signal
+         start => c_start_bcd2bin , --in -> signal
+         bcd2 => bcd2_in ,  --in -> signal
+         bcd1 => bcd1_in ,  --in -> signal
+         bcd0 => bcd0_in, --in -> signal
+         ready => ready_bcd2bin, --saida -> signal      ,flag indica conversor ocioso
+	      done_tick => c_done_tick_bcd2bin,  --saida -> signal       ,flag indica conversão terminou
+         bin => bin_out --saida -> signal
 
       );
+   bin2bcd_0 : entity work.bin2bcd(arch)
+   port map(
+      clk        => clk,
+      reset      => reset,
+      start      => c_start_bin2bcd,
+      bin        => "00000"& bin_in,  
+      ready      => ready_bin2bcd, 
+      done_tick  => c_done_tick_bin2bcd ,
+      bcd3 => open,
+      bcd2 => bcd2_out,
+      bcd1 => bcd1_out,
+      bcd0 => bcd0_out
+   );
+
 
    process(clk, reset)
       begin 
@@ -166,8 +206,13 @@ begin
    end process;
 
    --logica proximo estado
-   process(state_reg, make_code, extend, press, k_done_tick, wr_uart, w_data, m_start, x_in, y_in, m_idle, m_done_tick, z_out, c_start, bcd2,
-           bcd1, bcd0, ready, c_done_tick, bin, erro,  digito_numerico, x_done_tick, bcd)
+   process(state_reg, make_code, extend, press, k_done_tick, 
+            wr_uart, w_data, 
+            m_start, x_in, y_in, m_idle, m_done_tick, z_out, 
+            c_start_bcd2bin, bcd2_in, bcd1_in, bcd0_in, ready_bcd2bin, c_done_tick_bcd2bin, bin_out, 
+            c_start_bin2bcd, bin_in, ready_bin2bcd, c_done_tick_bin2bcd, bcd2_out, bcd1_out, bcd0_out, 
+            conv_ctrl,
+            erro,  digito_numerico, x_done_tick, bcd)
    begin
       state_next <= state_reg;--saidas defalt
       x_bcd2_next <= x_bcd2_reg;
@@ -181,6 +226,8 @@ begin
       valid_next <= valid_reg;
       counter_next <= counter_reg;
       erro <= '0';   
+      x_done_tick <= '0';
+      conv_ctrl <= "00";
 
       case state_reg is
          when idle =>
@@ -254,7 +301,6 @@ begin
                         counter_next <= counter_reg + 1;
                         state_next <= tecla3_x;
                      elsif make_code ="5a" then -- "enter"
-                        x_done_tick <= '1'; -- indica que terminou de receber o valor de x
                         state_next <= armazena_x;
                      else -- se não for numero nem enter é uma tecla invalida 
                         erro <= '1';
@@ -274,7 +320,6 @@ begin
                         counter_next <= counter_reg + 1;
                         state_next <= tecla_enter_x;
                      elsif make_code ="5a" then
-                        x_done_tick <= '1'; -- indica que terminou de receber o valor de x
                         state_next <= armazena_x;
                      else -- se não for numero nem enter é uma tecla invalida 
                         erro <= '1';
@@ -290,7 +335,6 @@ begin
                if press = '1' then
                   if extend = '0' then
                      if make_code ="5a" then
-                        x_done_tick <= '1'; -- indica que terminou de receber o valor de x
                         state_next <= armazena_x;
                      else -- se não for numero nem enter é uma tecla invalida 
                         erro <= '1';
@@ -302,13 +346,16 @@ begin
             end if;   
          
          when armazena_x => --  Corrige o valor BCD conforme a quantidade de dígitos  
-            
-            counter_next <= '0';           
+            counter_next <= '0'; --zero contagem           
+            state_next <= start_bcd2bin;
+            conv_ctrl <= "01"; --informa  para start_bcd2bin que estou convertendo o valor de x
+            x_done_tick <= '1'; -- indica que terminou de receber o valor de x, não sei se vou usar essa flag
             if counter_reg = '1' then 
-            in_bcd0_next <= in_bcd2_reg ; -- "desloco"  bcd2 => bcd0  
+            x_bcd0_next <= in_bcd2_reg ; -- "desloco"  bcd2 => bcd0  
             elsif counter_reg = '2' then
-            in_bcd0_next <= in_bcd1_reg ; --  "desloco"  bcd1 => bcd0
-            in_bcd1_next <= in_bcd2_reg ; --  "desloco"  bcd2 => bcd1
+            x_bcd0_next <= in_bcd1_reg ; --  "desloco"  bcd1 => bcd0
+            x_bcd1_next <= in_bcd2_reg ; --  "desloco"  bcd2 => bcd1
+            
             else -- se counter_reg = '3' então não preciso ajustar posição, mas verifico se esta na faixa.     
                if in_bcd2_reg = "1" or in_bcd2_reg = "0" then
                   if in_bcd1_reg = "2" or in_bcd1_reg = "1" or in_bcd1_reg = "0" then
@@ -325,11 +372,24 @@ begin
                      end if;
                   end if;
                end if;
-
-
             end if; 
  
-
+         when start_bcd2bin =>
+            if conv_ctr ="01" then
+            bcd2_in <= x_bcd2_reg;
+            bcd1_in <= x_bcd1_reg;
+            bcd0_in <= x_bcd0_reg;
+            c_start_bcd2bin <= '1';
+            
+            elsif conv_ctr ="10" then
+            bcd2_in <= y_bcd2_reg;
+            bcd1_in <= y_bcd1_reg;
+            bcd0_in <= y_bcd0_reg;
+            c_start_bcd2bin <= '1';
+            
+            end if;
+               
+         when start_bcd2bin => 
 
       end case;
 
@@ -343,18 +403,18 @@ begin
       bcd <= (others=>'0');
       digito_numerico <= '1';
       case make_code is
-         when "10110" => bcd <= "0001"; --1
-         when "11110" => bcd <= "0010"; --2
-         when "100110" => bcd <= "0011"; --3
-         when "" => bcd <= "0100"; --4                 
-         when "" => bcd <= "0101"; --5
-         when "" => bcd <= "0110"; --6
-         when "" => bcd <= "0111"; --7
-         when "" => bcd <= "1000"; --8
-         when "" => bcd <= "1001"; --9
-         when "" => bcd <= "0000"; --0
-         when "othes" => digito_numerico <= "0"; 
-
+         when "00010110" => bcd <= "0001"; --1
+         when "00011110" => bcd <= "0010"; --2
+         when "00100110" => bcd <= "0011"; --3
+         when "00100101" => bcd <= "0100"; --4                 
+         when "00101110" => bcd <= "0101"; --5
+         when "00110110" => bcd <= "0110"; --6
+         when "00111101" => bcd <= "0111"; --7
+         when "00111110" => bcd <= "1000"; --8
+         when "01000110" => bcd <= "1001"; --9
+         when "01000101" => bcd <= "0000"; --0
+         when others => digito_numerico <= '0'; 
+      end case;
    end process;
    
    end arch;
