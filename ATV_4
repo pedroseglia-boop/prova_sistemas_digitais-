@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 entity mult_8b_top is 
    port(
    clk, reset : in std_logic ;  
-   ps2d, ps2c:  in  std_logic; --comunicação teclado
+   ps2d, ps2c:  in  std_logic; --comunicaÃ§Ã£o teclado
    tx :         out std_logic  --saida uart -> pc
 
    );
@@ -28,8 +28,8 @@ architecture arch of mult_8b_top is
 
    --multiplicador
    signal m_start : std_logic;  
-   -- x_in é um registrador e não um sinal     
-   -- y_in é um registrador e não um sinal  
+   -- x_in Ã© um registrador e nÃ£o um sinal     
+   -- y_in Ã© um registrador e nÃ£o um sinal  
    signal m_idle : std_logic;  
    signal m_done_tick : std_logic;  
    signal z_out : std_logic_vector(15  downto 0);  
@@ -57,11 +57,11 @@ architecture arch of mult_8b_top is
 
    --circuito combinacional, make_code2bcd
    signal digito_numerico : std_logic; --flag 
-   signal bcd : std_logic_vector(3 downto 0); -- armazena conversão 
+   signal bcd : std_logic_vector(3 downto 0); -- armazena conversÃ£o 
 
    
 --sinais maquina de estados
-   --flags ainda sem função definida
+   --flags ainda sem funÃ§Ã£o definida
    signal erro : std_logic; --valor invalido inserido
    signal x_done_tick : std_logic; --indica que todos os digitos de x foram recebidos   
 
@@ -78,16 +78,16 @@ architecture arch of mult_8b_top is
    signal y_sign_reg, y_sign_next : std_logic;
    signal valid_reg, valid_next :std_logic;
    signal counter_reg, counter_next : unsigned(2 downto 0); 
-   --guarda o valor de entrada temporariamente para converção
+   --guarda o valor de entrada temporariamente para converÃ§Ã£o
    signal in_bcd2_reg, in_bcd1_reg, in_bcd0_reg :unsigned(3 downto 0);
    signal in_bcd2_next, in_bcd1_next, in_bcd0_next :unsigned(3 downto 0);
    signal in_sign_reg, in_sign_next : std_logic; 
 
-   --guarda operandos da multiplicação temporariamente, enquanto aguarda a ordem de multiplicar
+   --guarda operandos da multiplicaÃ§Ã£o temporariamente, enquanto aguarda a ordem de multiplicar
    signal x_in_reg, x_in_next : std_logic_vector(7 downto 0);
    signal y_in_reg, y_in_next :  std_logic_vector(7 downto 0);
 
-   signal conv_ctrl_reg, conv_ctrl_next  : std_logic_vector (1 downto 0); -- controle da conversão , indica se estou convertendo x => 01 , y=> 10 ou nenhum deles 00 
+   signal conv_ctrl_reg, conv_ctrl_next  : std_logic_vector (1 downto 0); -- controle da conversÃ£o , indica se estou convertendo x => 01 , y=> 10 ou nenhum deles 00 
 
 
 
@@ -129,15 +129,15 @@ begin
       );
 
    mult_0 : entity work.mult_booth(shift_add_sub_arch)
-      -- generic map( ) não precisa de generic map, valor default é para 8 bits, valor usado nessa aplicação
+      -- generic map( ) nÃ£o precisa de generic map, valor default Ã© para 8 bits, valor usado nessa aplicaÃ§Ã£o
       port map (
          clk       => clk,  --in
          reset     => reset, --in 
-         m_start => m_start , --in -> signal    ,sinal de entrada que inicia operação 1 bit
-         x_in => x_in_reg ,    --in -> signal
+         m_start => m_start , --in -> signal    ,sinal de entrada que inicia operaÃ§Ã£o 1 bit
+         x_in => x_in_reg ,    --in -> signal aqui eu ponho o valor reg ou valor next ? 
          y_in => y_in_reg ,    --in -> signal
          m_idle => m_idle ,  --saida -> signal    ,flag indica sistema ocioso
-         m_done_tick => m_done_tick,  --saida -> signal     ,flag indica que operação terminou
+         m_done_tick => m_done_tick,  --saida -> signal     ,flag indica que operaÃ§Ã£o terminou
          z_out => z_out  --saida -> signal
       );
    
@@ -150,7 +150,7 @@ begin
          bcd1 => bcd1_in ,  --in -> signal
          bcd0 => bcd0_in, --in -> signal
          ready => ready_bcd2bin, --saida -> signal      ,flag indica conversor ocioso
-	      done_tick => c_done_tick_bcd2bin,  --saida -> signal       ,flag indica conversão terminou
+	      done_tick => c_done_tick_bcd2bin,  --saida -> signal       ,flag indica conversÃ£o terminou
          bin => bin_out --saida -> signal
 
       );
@@ -159,7 +159,7 @@ begin
       clk        => clk,
       reset      => reset,
       start      => c_start_bin2bcd,
-      bin        => "00000"& bin_in,  
+      bin        =>  bin_in, --adaptar , entradas não compativeis, bin maior que bin_in  
       ready      => ready_bin2bcd, 
       done_tick  => c_done_tick_bin2bcd ,
       bcd3 => open,
@@ -173,16 +173,15 @@ begin
       begin 
       if reset = '1' then
          state_reg <= idle;
-         state_reg <= (others=>'0');
          x_bcd2_reg <= (others=>'0');
          x_bcd1_reg <= (others=>'0');
          x_bcd0_reg <= (others=>'0');
          y_bcd2_reg <= (others=>'0');
          y_bcd1_reg <= (others=>'0');
          y_bcd0_reg <= (others=>'0');
-         x_sign_reg <= (others=>'0');
-         y_sign_reg <= (others=>'0');
-         valid_reg <= (others=>'0');
+         x_sign_reg <= '0';
+         y_sign_reg <= '0';
+         valid_reg <= '0';
          counter_reg <= (others=>'0');
          in_bcd2_reg <= (others=>'0');
          in_bcd1_reg <= (others=>'0');
@@ -193,7 +192,6 @@ begin
          
       elsif (clk'event and clk='1') then
          state_reg <= idle;
-         state_reg <= (others=>'0');
          x_bcd2_reg <= x_bcd2_next;
          x_bcd1_reg <= x_bcd1_next;
          x_bcd0_reg <= x_bcd0_next;
@@ -215,10 +213,9 @@ begin
    --logica proximo estado
    process(state_reg, make_code, extend, press, k_done_tick, 
             wr_uart, w_data, 
-            m_start, m_idle, m_done_tick, z_out,  --x_in e y_in são registradores, não entram na lista de sensibilidade
+            m_start, m_idle, m_done_tick, z_out,  --x_in e y_in sÃ£o registradores, nÃ£o entram na lista de sensibilidade
             c_start_bcd2bin, bcd2_in, bcd1_in, bcd0_in, ready_bcd2bin, c_done_tick_bcd2bin, bin_out, 
             c_start_bin2bcd, bin_in, ready_bin2bcd, c_done_tick_bin2bcd, bcd2_out, bcd1_out, bcd0_out, 
-            conv_ctrl,
             erro,  digito_numerico, x_done_tick, bcd)
    begin
       state_next <= state_reg;--saidas defalt
@@ -237,6 +234,7 @@ begin
       in_bcd0_next <= in_bcd0_reg;         
       in_sign_next <= in_sign_reg; 
       conv_ctrl_next <= conv_ctrl_reg;
+
       erro <= '0';   
       x_done_tick <= '0';
 
@@ -267,10 +265,10 @@ begin
                   if extend = '0' then
                      if make_code = "55" then --  '='
                         state_next <= tecla1_x;
-                     else -- se não for = é uma tecla invalida
+                     else -- se nÃ£o for = Ã© uma tecla invalida
                         erro <= '1';
                      end if;
-                  else -- se for extendida é uma tecla invalida
+                  else -- se for extendida Ã© uma tecla invalida
                      erro <= '1';               
                   end if;
                end if;
@@ -282,22 +280,22 @@ begin
                   if extend = '0' then
                      if make_code = "55" then -- digito de signal '+'
                         in_sign_next <= '0';
-                        counter_next <= counter_reg + 1; --counter tem papel de controle, evita repetições do caracter de signal
+                        counter_next <= counter_reg + 1; --counter tem papel de controle, evita repetiÃ§Ãµes do caracter de signal
                         if counter_reg ='1' then --signifca que digitei caracter "+" mais de uma vez
-                           erro <= '1'; --obs esta incompleto, apenas indicar erro não é o bastante, provavelmente aqui vou ter que zerar counter_reg 
+                           erro <= '1'; --obs esta incompleto, apenas indicar erro nÃ£o Ã© o bastante, provavelmente aqui vou ter que zerar counter_reg 
                         end if;
                      elsif make_code = "4e "then -- digito de signal "-"
                         in_sign_next <= '1'; 
-                        counter_next <= counter_reg + 1; --counter tem papel de controle, evita repetições do caracter de signal
+                        counter_next <= counter_reg + 1; --counter tem papel de controle, evita repetiÃ§Ãµes do caracter de signal
                         if counter_reg ='1' then --signifca que digitei caracter "-" mais de uma vez
                            erro <= '1';
                         end if;
                      elsif digito_numerico = "1" then
-                        in_bcd2_next <= bcd ; --valor vem de circuito combinacional que transforma make_code em bcd, bcd mais significativo é guardado
-                        counter_next <= 1; --seto counter em 1 => 1 bcd armazenado. Agora variavel tem uma função diferente, contagem de digitos armazenados
+                        in_bcd2_next <= bcd ; --valor vem de circuito combinacional que transforma make_code em bcd, bcd mais significativo Ã© guardado
+                        counter_next <= 1; --seto counter em 1 => 1 bcd armazenado. Agora variavel tem uma funÃ§Ã£o diferente, contagem de digitos armazenados
                         state_next <= tecla2_x;
                      end if;
-                  else -- se for extendida é uma tecla invalida
+                  else -- se for extendida Ã© uma tecla invalida
                      erro <= '1';                           
                   end if;                                          
                end if;
@@ -313,10 +311,10 @@ begin
                         state_next <= tecla3_x;
                      elsif make_code ="5a" then -- "enter"
                         state_next <= armazena_x;
-                     else -- se não for numero nem enter é uma tecla invalida 
+                     else -- se nÃ£o for numero nem enter Ã© uma tecla invalida 
                         erro <= '1';
                      end if;
-                  else -- se for extendida é uma tecla invalida
+                  else -- se for extendida Ã© uma tecla invalida
                      erro <= '1';                           
                   end if;                           
                end if;
@@ -332,10 +330,10 @@ begin
                         state_next <= tecla_enter_x;
                      elsif make_code ="5a" then
                         state_next <= armazena_x;
-                     else -- se não for numero nem enter é uma tecla invalida 
+                     else -- se nÃ£o for numero nem enter Ã© uma tecla invalida 
                         erro <= '1';
                      end if;
-                  else -- se for extendida é uma tecla invalida
+                  else -- se for extendida Ã© uma tecla invalida
                      erro <= '1';                           
                   end if;                           
                end if;
@@ -347,27 +345,27 @@ begin
                   if extend = '0' then
                      if make_code ="5a" then
                         state_next <= armazena_x;
-                     else -- se não for numero nem enter é uma tecla invalida 
+                     else -- se nÃ£o for numero nem enter Ã© uma tecla invalida 
                         erro <= '1';
                      end if;
-                  else -- se for extendida é uma tecla invalida
+                  else -- se for extendida Ã© uma tecla invalida
                      erro <= '1';                           
                   end if;                           
                end if;
             end if;   
          
-         when armazena_x => --  Corrige o valor BCD conforme a quantidade de dígitos  
+         when armazena_x => --  Corrige o valor BCD conforme a quantidade de dÃ­gitos  
             counter_next <= '0'; --zero contagem           
             state_next <= start_bcd2bin;
-            conv_ctrl <= "01"; --informa  para start_bcd2bin que estou convertendo o valor de x
-            x_done_tick <= '1'; -- indica que terminou de receber o valor de x, não sei se vou usar essa flag
+            conv_ctr_next <= "01"; --informa  para start_bcd2bin que estou convertendo o valor de x
+            x_done_tick <= '1'; -- indica que terminou de receber o valor de x, nÃ£o sei se vou usar essa flag
             if counter_reg = '1' then 
             x_bcd0_next <= in_bcd2_reg ; -- "desloco"  bcd2 => bcd0  
             elsif counter_reg = '2' then
             x_bcd0_next <= in_bcd1_reg ; --  "desloco"  bcd1 => bcd0
             x_bcd1_next <= in_bcd2_reg ; --  "desloco"  bcd2 => bcd1
             
-            else -- se counter_reg = '3' então não preciso ajustar posição, mas verifico se esta na faixa.     
+            else -- se counter_reg = '3' entÃ£o nÃ£o preciso ajustar posiÃ§Ã£o, mas verifico se esta na faixa.     
                if in_bcd2_reg = "1" or in_bcd2_reg = "0" then
                   if in_bcd1_reg = "2" or in_bcd1_reg = "1" or in_bcd1_reg = "0" then
                      if in_bcd0_reg < 8 and in_sign_reg = '0' then
@@ -385,15 +383,15 @@ begin
                end if;
             end if; 
  
-         when start_bcd2bin => -- pergunta : conversor ocioso?  se sim começa converção
-            state_next <= wait_bcd2bin;
-            if conv_ctr ="01" and ready_bcd2bin = '1' then
+         when start_bcd2bin => -- pergunta : conversor ocioso?  se sim comeÃ§a converÃ§Ã£o, veja essa pergunta parece inutil, nÃ£o sei existe um caso em que ele esteja ocupado. 
+            state_next <= wait_bcd2bin; 
+            if conv_ctr_reg ="01" and ready_bcd2bin = '1' then -- se estamos convertando valor de x => 01 
             bcd2_in <= x_bcd2_reg;
             bcd1_in <= x_bcd1_reg;
             bcd0_in <= x_bcd0_reg;
             c_start_bcd2bin <= '1';
             
-            elsif conv_ctr ="10" and ready_bcd2bin = '1' then
+            elsif conv_ctr_reg ="10" and ready_bcd2bin = '1' then -- se estamos convertando valor de y => 10 
             bcd2_in <= y_bcd2_reg;
             bcd1_in <= y_bcd1_reg;
             bcd0_in <= y_bcd0_reg;
@@ -401,17 +399,21 @@ begin
             end if;
                
          when wait_bcd2bin => --
-            if conv_ctrl="01" and c_done_tick_bcd2bin = '1' then
-               if x_sign_reg = '1' then
-                  x_in  <= std_logic_vector( unsigned(not bin_out) + 1) ;
-               else
-                  x_in <= bin_out;
+            if conv_ctr_reg ="01" and c_done_tick_bcd2bin = '1' then -- se estamos convertando valor de x => 01 e bcd2bin terminou  converÃ§Ã£o entÃ£o
+               conv_ctr_reg <= "00"; --Zero para evitar lixo
+               state_next <= idle; --volto para idle a espera de novo comando
+               if x_sign_reg = '1' then --se valor for negativo
+                  x_in_next  <= std_logic_vector( unsigned(not bin_out) + 1) ; --faÃ§o complemento de 2 e guardo
+               else --se valor for positivo
+                  x_in_next <= bin_out; --apenas guardo
                end if; 
-            elsif conv_ctrl="01" then
-               if y_sign_reg = '1' then
-                  y_in  <= std_logic_vector( unsigned(not bin_out) + 1) ;
-               else
-                  y_in <= bin_out;
+            elsif conv_ctr_reg ="01" and c_done_tick_bcd2bin = '1' then -- se estamos convertando valor de y => 10 e bcd2bin terminou  converÃ§Ã£o entÃ£o
+               conv_ctr_reg <= "00";  --Zero para evitar lixo
+               state_next <= idle; --volto para idle a espera de novo comando
+               if y_sign_reg = '1' then --se valor for negativo
+                  y_in_next  <= std_logic_vector( unsigned(not bin_out) + 1) ;  --faÃ§o complemento de 2 e guardo
+               else --se valor for positivo
+                  y_in_next <= bin_out; --apenas guardo
                end if;             
             end if;
 
@@ -421,7 +423,7 @@ begin
    end process;
 
 
-   --circuitos combinaicinais conversão make_code2bcd
+   --circuitos combinaicinais conversÃ£o make_code2bcd
    process(make_code)
    begin
       bcd <= (others=>'0');
