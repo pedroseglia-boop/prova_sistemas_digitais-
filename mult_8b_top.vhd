@@ -90,7 +90,7 @@ architecture arch of mult_8b_top is
     signal k_done_tick : std_logic;
 
     -- Sinais da UART 
-    constant DVSR : std_logic_vector(10 downto 0) := std_logic_vector(to_unsigned(163, 11));
+    constant DVSR : std_logic_vector(10 downto 0) := std_logic_vector(to_unsigned(324, 11));
     signal wr_uart : std_logic;
     signal w_data  : std_logic_vector(7 downto 0);
     signal tx_full : std_logic;
