@@ -261,7 +261,7 @@ begin
             state_reg, 
             x_bcd2_reg, x_bcd1_reg, x_bcd0_reg, y_bcd2_reg, y_bcd1_reg, y_bcd0_reg,  valid_reg, --validacao entrada
             counter_reg, in_bcd2_reg, in_bcd1_reg, in_bcd0_reg, conv_ctrl_reg,  in_sign_reg, ctrl_sign_reg,
-            z_bcd4_reg, z_bcd3_reg, z_bcd2_reg, z_bcd1_reg,z_bcd0_reg , print_ctrl_reg,
+            z_sign_reg, z_bcd4_reg, z_bcd3_reg, z_bcd2_reg, z_bcd1_reg,z_bcd0_reg , print_ctrl_reg,
             erro,  digito_numerico, x_done_tick, y_done_tick, bcd, bcd2ascii, ascii )
    begin
       state_next <= state_reg;--saidas defalt
@@ -373,14 +373,14 @@ begin
                         if ctrl_sign_reg  ="01" then --se ctrl_sign_reg  ="01" digitei caracter + pela 2 vez
                            erro <= '1';
                            state_next <= erro_tx_0;
-                        end if;                    -- teste primeiro se a entrada é valida e depois atualizo meus registros
+                        end if;                    -- teste primeiro se a entrada Ã© valida e depois atualizo meus registros
                      elsif make_code = x"4e"then -- se digito de signal "-"
                         in_sign_next <= '1'; 
                         ctrl_sign_next <= ctrl_sign_reg  + 1; -- counter faz controle, evita repeticao do caracter de signal                         
                          if ctrl_sign_reg  ="01" then --se ctrl_sign_reg  ="01" digitei caracter - pela 2 vez
                            erro <= '1';
                            state_next <= erro_tx_0;
-                        end if;                    -- teste primeiro se a entrada é valida e depois atualizo meus registros
+                        end if;                    -- teste primeiro se a entrada Ã© valida e depois atualizo meus registros
                      elsif digito_numerico = '1' then -- se numero 
                         in_bcd2_next <= bcd ; --origem: combinacional,  make_code => bcd
                         counter_next <= "01"; --seto counter em 1 => 1 bcd armazenado. funcao contagem de digitos armazenados
@@ -552,14 +552,14 @@ begin
                         if ctrl_sign_reg  ="01" then --se digitei caracter "+" mais de uma vez
                            erro <= '1';
                            state_next <= erro_tx_0;
-                        end if;                    -- teste primeiro se a entrada é valida e depois atualizo meus registros
+                        end if;                    -- teste primeiro se a entrada Ã© valida e depois atualizo meus registros
                         in_sign_next <= '0';
                         ctrl_sign_next <= ctrl_sign_reg + 1; --  controle, evita repeticao do caracter de signal
                      elsif make_code = x"4e"then -- se digito de signal "-"
                          if ctrl_sign_reg  ="01" then --signifca que digitei caracter "-" mais de uma vez
                            erro <= '1';
                            state_next <= erro_tx_0;
-                        end if;                    -- teste primeiro se a entrada é valida e depois atualizo meus registros
+                        end if;                    -- teste primeiro se a entrada Ã© valida e depois atualizo meus registros
                         in_sign_next <= '1'; 
                         ctrl_sign_next <= ctrl_sign_reg  + 1; -- counter faz controle, evita repeticao do caracter de signal
                      elsif digito_numerico = '1' then -- se numero 
@@ -656,7 +656,7 @@ begin
                 y_sign_next <= in_sign_reg;
                 valid_next <= '0';
                 state_next <= start_bcd2bin; --valor valido =>  converter
-            elsif counter_reg = "11" then -- se = '3'  verifico -129 < bcd < 128 . obs x > 3 é don't care, elsif é uma redundancia    
+            elsif counter_reg = "11" then -- se = '3'  verifico -129 < bcd < 128 . obs x > 3 Ã© don't care, elsif Ã© uma redundancia    
                if  in_bcd2_reg = "0000" then --numero da forma 021, ou seja. e menor que 100
                   y_bcd0_next  <= in_bcd0_reg ; 
                   y_bcd1_next <= in_bcd1_reg ;
@@ -799,7 +799,7 @@ begin
             state_next <= idle; --salto de linha                                  
          end if;
             
-      when erro_tx_0=> --obs : fifo 32 posicoes, tx_full = '1' n�o acontece
+      when erro_tx_0=> --obs : fifo 32 posicoes, tx_full = '1' não acontece
          w_data <= x"45"; --E
          wr_uart <= '1';
          state_next <= erro_tx_1;
@@ -826,7 +826,7 @@ begin
       
       
 
-      when wrong_tx_0=> --obs : fifo 32 posicoes, tx_full = '1' n�o acontece
+      when wrong_tx_0=> --obs : fifo 32 posicoes, tx_full = '1' não acontece
          w_data <= x"77"; --w
          wr_uart <= '1';
          state_next <= wrong_tx_1;
@@ -878,7 +878,7 @@ begin
    --circuitos combinaicinais conversao make_code2bcd
    process(make_code)
    begin
-      bcd  <= (others=>'0'); -- valor defalt, impede a criação de memoria
+      bcd  <= (others=>'0'); -- valor defalt, impede a criaÃ§Ã£o de memoria
       --nao preciso me preucupar com k_done_tick pois make_code sempre recebe um valor valido, ele nao oscila com valores intermediarios lixo ante de receber valor final
       digito_numerico <= '1';
       case make_code is
@@ -946,7 +946,7 @@ process(bcd2ascii, x_bcd0_reg, x_bcd1_reg, x_bcd2_reg, y_bcd0_reg, y_bcd1_reg, y
          when "01001" => ascii <= x"39"; -- 9
          when "10001" => ascii <= x"78"; -- x
          when "10010" => ascii <= x"3d"; -- =
-         when "10011" => ascii <= x"20"; -- espa�o
+         when "10011" => ascii <= x"20"; -- espaço
          when "10100" => ascii <= x"79"; -- y
          when "10000" => ascii <= x"2b"; -- +
          when "11000" => ascii <= x"2d"; -- -
