@@ -66,15 +66,19 @@ begin
             
       end if;
    end process;
-   
+
+   --processo combinacional evita 1 estado
    process(p_reg, x_ext_reg,xn_ext_reg )
    begin
           case p_reg (1 downto 0) is 
                when  "01" =>
+               -- soma com parte alta
                    sum <= p_reg(2*DATA_WIDTH+1 downto DATA_WIDTH+1)+x_ext_reg ;
                when "10" =>
+               -- subtrai com parte alta
                    sum <= p_reg(2*DATA_WIDTH+1 downto DATA_WIDTH+1)+xn_ext_reg ;
                when others =>
+               --não faz nada
                    sum <= p_reg(2*DATA_WIDTH+1 downto DATA_WIDTH+1);
           end case;           
    end process;                
@@ -102,18 +106,22 @@ begin
                   xn_ext_next <= (xn_in(DATA_WIDTH-1)& xn_in);
                   counter_next <= (others => '0');
                   p_next(0) <= '0';
+                  --insiro 0 "extra" da direita
                   p_next(DATA_WIDTH downto 1) <=  unsigned(y_in)  ;
+                  --carrego  multiplicador
                   p_next(2*DATA_WIDTH+1 downto DATA_WIDTH+1) <= (others => '0')  ;
+                  --insiro 0 "extra" da esquerda
                   state_next <= shift;
                end if;
                m_idle <='1';
 
          when shift =>
-            counter_next <= counter_reg+1;            
-            p_next <= sum(DATA_WIDTH)& sum &  p_reg(DATA_WIDTH downto 1) ; 
+            counter_next <= counter_reg+1;
+            --conto o numero de iteracoes 
+            p_next <= sum(DATA_WIDTH)& sum &  p_reg(DATA_WIDTH downto 1) ;
+            --uso valor combinacional no shift
             if counter_reg = (DATA_WIDTH-1) then
                state_next <= done;
-            
             end if;
             
 
@@ -123,11 +131,10 @@ begin
       end case;
    end process;
 
---combinacio9nal--
+--combinacional--
 
     z_out <= std_logic_vector(p_reg(2*DATA_WIDTH downto 1));
     xn_in <= unsigned(not x_in) + 1;
-
 
 end shift_add_sub_arch;
 
