@@ -900,7 +900,6 @@ begin
    process(print_ctrl_reg, x_sign_reg,  x_bcd0_reg,  x_bcd1_reg,  x_bcd2_reg, y_sign_reg,  y_bcd0_reg,  y_bcd1_reg,  y_bcd2_reg, 
             z_sign_reg,  z_bcd0_reg,  z_bcd1_reg,  z_bcd2_reg, z_bcd3_reg,  z_bcd4_reg  )
    begin
-      bcd2ascii <= "00000"; -- espaco
       
       case print_ctrl_reg is
          when "00000" => bcd2ascii <= "10001"; -- x
@@ -932,7 +931,7 @@ begin
 
 process(bcd2ascii, x_bcd0_reg, x_bcd1_reg, x_bcd2_reg, y_bcd0_reg, y_bcd1_reg, y_bcd2_reg, z_bcd0_reg, z_bcd1_reg, z_bcd2_reg, z_bcd3_reg, z_bcd4_reg )
    begin 
-    ascii <= x"20"; --valor default
+	   
       case bcd2ascii is
          when "00000" => ascii <= x"30"; -- 0
          when "00001" => ascii <= x"31"; -- 1
